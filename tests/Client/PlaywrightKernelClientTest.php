@@ -322,6 +322,26 @@ class PlaywrightKernelClientTest extends TestCase
         self::assertStringContainsString('redirects <= 10', $this->context->initScripts[0]);
     }
 
+    public function testKernelRouteIsRegisteredWhenTheClientIsCreated(): void
+    {
+        new PlaywrightKernelClient(
+            $this->browser,
+            new class implements HttpKernelInterface {
+                public function handle(SymfonyRequest $request, int $type = self::MAIN_REQUEST, bool $catch = true): SymfonyResponse
+                {
+                    return new SymfonyResponse('from the kernel');
+                }
+            },
+            new RequestConverter(),
+            new ResponseConverter(),
+        );
+
+        $route = $this->page->triggerRequest(new MockRequest(url: 'http://localhost/hello'));
+
+        self::assertTrue($route->fulfilled);
+        self::assertSame('from the kernel', $route->fulfilledOptions['body'] ?? null);
+    }
+
     public function testNonInterceptedRequestFallsBack(): void
     {
         $client = new PlaywrightKernelClient(

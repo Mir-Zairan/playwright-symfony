@@ -723,7 +723,7 @@ class PlaywrightKernelClient extends AbstractBrowser
             $url = parse_url($request->url());
 
             if (!$this->shouldInterceptRequest($url)) {
-                $this->log('debug', 'Passing external request on', [
+                $this->log('debug', 'Falling back for external request', [
                     'url' => $request->url(),
                     'method' => $request->method(),
                 ]);

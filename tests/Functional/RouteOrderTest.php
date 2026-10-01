@@ -55,15 +55,42 @@ final class RouteOrderTest extends PlaywrightTestCase
         self::assertNull($this->getLastResponse());
     }
 
-    public function testRequestToAHostTheKernelDoesNotServeReachesContextRoutes(): void
+    public function testRouteAddedAfterTheFirstVisitCanFallBackToTheKernel(): void
     {
         $this->visit('/hello');
-        $this->getPlaywrightClient()->context()?->route('http://outside.test/**', static function (RouteInterface $route): void {
+        $seen = [];
+        $this->getPage()->route('**/*', static function (RouteInterface $route) use (&$seen): void {
+            $seen[] = $route->request()->url();
+            $route->fallback();
+        });
+
+        $this->visit('/hello?again=1');
+
+        $this->assertPageContains('hello from app');
+        self::assertContains('http://localhost/hello?again=1', $seen);
+        self::assertSame('1', $this->getLastRequest()?->query->get('again'));
+    }
+
+    public function testContextRoutesOnlySeeRequestsTheKernelDoesNotServe(): void
+    {
+        $hosts = [];
+        $this->getPlaywrightClient()->context()?->route('**/*', static function (RouteInterface $route) use (&$hosts): void {
+            $host = parse_url($route->request()->url(), \PHP_URL_HOST);
+            $hosts[] = $host;
+            if ('outside.test' !== $host) {
+                $route->abort();
+
+                return;
+            }
             $route->fulfill(['status' => 200, 'contentType' => 'text/html', 'body' => '<p>from the context route</p>']);
         });
+
+        $this->visit('/hello');
+        $this->assertPageContains('hello from app');
 
         $this->getPage()->goto('http://outside.test/');
 
         $this->assertPageContains('from the context route');
+        self::assertSame(['outside.test'], array_unique($hosts));
     }
 }
