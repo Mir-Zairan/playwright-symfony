@@ -322,7 +322,7 @@ class PlaywrightKernelClientTest extends TestCase
         self::assertStringContainsString('redirects <= 10', $this->context->initScripts[0]);
     }
 
-    public function testNonInterceptedRequestContinues(): void
+    public function testNonInterceptedRequestFallsBack(): void
     {
         $client = new PlaywrightKernelClient(
             $this->browser,
@@ -340,11 +340,12 @@ class PlaywrightKernelClientTest extends TestCase
 
         $client->visit('/anything');
 
-        // Simulate external host -> should continue
+        // Simulate external host -> should fall back
         $mock = new MockRequest(url: 'http://example.com/page', method: 'GET');
         $route = $this->page->triggerRequest($mock);
 
-        self::assertTrue($route->continued);
+        self::assertTrue($route->fellBack);
+        self::assertFalse($route->continued);
         self::assertFalse($route->fulfilled);
     }
 
@@ -1191,11 +1192,12 @@ class PlaywrightKernelClientTest extends TestCase
 
         $client->visit('/test');
 
-        // Malformed URL request should continue (not intercept)
+        // Malformed URL request should fall back (not intercept)
         $mock = new MockRequest(url: 'not-a-valid-url', method: 'GET');
         $route = $this->page->triggerRequest($mock);
 
-        self::assertTrue($route->continued);
+        self::assertTrue($route->fellBack);
+        self::assertFalse($route->continued);
         self::assertFalse($route->fulfilled);
     }
 

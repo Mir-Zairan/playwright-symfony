@@ -7,6 +7,10 @@ Before 1.0, breaking changes are released in minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- Register the kernel route as soon as the client is created, so routes a test adds on the page run before it and can `fallback()` to it, and pass requests to other hosts on with `fallback()` so context routes still see them.
+
 ## [0.11.0] - 2026-09-20
 
 ### Changed
